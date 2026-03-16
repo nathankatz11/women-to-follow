@@ -1,0 +1,68 @@
+import { NextRequest, NextResponse } from "next/server";
+import { lookupXUsers, getHighResProfileImage } from "@/lib/x-api";
+import { upsertNominee, createNomination } from "@/lib/db/queries";
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const { handles, nominatorHandle } = body;
+
+  if (!Array.isArray(handles) || handles.length !== 3) {
+    return NextResponse.json(
+      { error: "Exactly 3 handles are required" },
+      { status: 400 }
+    );
+  }
+
+  const cleanHandles = handles.map((h: string) =>
+    h.replace(/^@/, "").trim().toLowerCase()
+  );
+
+  // Validate handles aren't empty
+  if (cleanHandles.some((h: string) => !h)) {
+    return NextResponse.json(
+      { error: "All 3 handles must be provided" },
+      { status: 400 }
+    );
+  }
+
+  // Batch fetch from X API
+  const profiles = await lookupXUsers(cleanHandles);
+
+  // Upsert each nominee
+  const nomineeResults = [];
+  for (const handle of cleanHandles) {
+    const profile = profiles.get(handle);
+    if (profile) {
+      const nominee = await upsertNominee({
+        handle,
+        name: profile.name,
+        bio: profile.description,
+        profileImageUrl: getHighResProfileImage(profile.profile_image_url),
+        followerCount: profile.public_metrics.followers_count,
+        xUserId: profile.id,
+      });
+      nomineeResults.push({ ...nominee, found: true });
+    } else {
+      // Save handle even if we can't fetch the profile
+      const nominee = await upsertNominee({ handle });
+      nomineeResults.push({ ...nominee, found: false });
+    }
+  }
+
+  // Get IP for rate limiting
+  const ip =
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
+    request.headers.get("x-real-ip") ??
+    "unknown";
+
+  const nomination = await createNomination(
+    cleanHandles,
+    nominatorHandle?.replace(/^@/, "").trim() || undefined,
+    ip
+  );
+
+  return NextResponse.json({
+    nominationId: nomination.id,
+    nominees: nomineeResults,
+  });
+}
