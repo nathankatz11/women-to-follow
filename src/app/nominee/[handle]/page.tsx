@@ -17,7 +17,7 @@ export async function generateMetadata({
   const { handle } = await params;
   const nominee = await getNomineeWithNominators(handle);
 
-  if (!nominee) {
+  if (!nominee || nominee.isApproved === false) {
     return { title: "Not Found | Women to Follow" };
   }
 
@@ -44,7 +44,7 @@ export default async function NomineePage({ params }: PageProps) {
   const { handle } = await params;
   const nominee = await getNomineeWithNominators(handle);
 
-  if (!nominee) notFound();
+  if (!nominee || nominee.isApproved === false) notFound();
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-brand-cream to-white">

@@ -25,7 +25,7 @@ export async function lookupXUser(
   const cleanHandle = handle.replace(/^@/, "").trim();
 
   const res = await fetch(
-    `${X_API_BASE}/users/by/username/${cleanHandle}?user.fields=description,profile_image_url,public_metrics`,
+    `${X_API_BASE}/users/by/username/${encodeURIComponent(cleanHandle)}?user.fields=description,profile_image_url,public_metrics`,
     {
       headers: {
         Authorization: `Bearer ${token}`,
@@ -67,7 +67,7 @@ export async function lookupXUsers(
   const usernames = cleanHandles.join(",");
 
   const res = await fetch(
-    `${X_API_BASE}/users/by?usernames=${usernames}&user.fields=description,profile_image_url,public_metrics`,
+    `${X_API_BASE}/users/by?usernames=${encodeURIComponent(usernames)}&user.fields=description,profile_image_url,public_metrics`,
     {
       headers: {
         Authorization: `Bearer ${token}`,

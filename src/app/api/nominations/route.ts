@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { lookupXUsers, getHighResProfileImage } from "@/lib/x-api";
 import { upsertNominee, createNomination } from "@/lib/db/queries";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request.headers);
+  const { success } = rateLimit(`nominations:${ip}`, 10, 15 * 60 * 1000);
+  if (!success) {
+    return NextResponse.json(
+      { error: "Too many nominations. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   const body = await request.json();
   const { handles, nominatorHandle } = body;
 
@@ -48,12 +58,6 @@ export async function POST(request: NextRequest) {
       nomineeResults.push({ ...nominee, found: false });
     }
   }
-
-  // Get IP for rate limiting
-  const ip =
-    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ??
-    request.headers.get("x-real-ip") ??
-    "unknown";
 
   const nomination = await createNomination(
     cleanHandles,

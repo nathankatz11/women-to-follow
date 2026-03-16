@@ -91,10 +91,11 @@ export async function getNomineesWithCounts({
     conditions.push(eq(nominees.isFeatured, true));
   }
   if (search) {
+    const escaped = search.replace(/[%_\\]/g, "\\$&");
     conditions.push(
       or(
-        ilike(nominees.handle, `%${search}%`),
-        ilike(nominees.name, `%${search}%`)
+        ilike(nominees.handle, `%${escaped}%`),
+        ilike(nominees.name, `%${escaped}%`)
       )!
     );
   }
@@ -130,6 +131,30 @@ export async function getNomineesWithCounts({
     .offset(offset);
 
   return results;
+}
+
+export async function getAllNomineesForAdmin() {
+  const nominationCount = sql<number>`(
+    SELECT COUNT(*) FROM nomination_nominees
+    WHERE nomination_nominees.nominee_id = nominees.id
+  )`.as("nomination_count");
+
+  return db
+    .select({
+      id: nominees.id,
+      handle: nominees.handle,
+      name: nominees.name,
+      bio: nominees.bio,
+      profileImageUrl: nominees.profileImageUrl,
+      followerCount: nominees.followerCount,
+      isFeatured: nominees.isFeatured,
+      isApproved: nominees.isApproved,
+      createdAt: nominees.createdAt,
+      nominationCount,
+    })
+    .from(nominees)
+    .orderBy(desc(nominationCount))
+    .limit(500);
 }
 
 export async function getNomineeWithNominators(handle: string) {

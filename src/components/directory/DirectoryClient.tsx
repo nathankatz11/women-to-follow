@@ -22,9 +22,9 @@ export function DirectoryClient({
   const [hasMore, setHasMore] = useState(initialNominees.length === 24);
 
   const fetchNominees = useCallback(
-    async (resetPage = false) => {
+    async (resetPage = false, targetPage?: number) => {
       setLoading(true);
-      const p = resetPage ? 1 : page;
+      const p = resetPage ? 1 : (targetPage ?? page);
       const params = new URLSearchParams({
         sort,
         page: p.toString(),
@@ -123,8 +123,9 @@ export function DirectoryClient({
           <Button
             variant="outline"
             onClick={() => {
-              setPage((p) => p + 1);
-              fetchNominees();
+              const nextPage = page + 1;
+              setPage(nextPage);
+              fetchNominees(false, nextPage);
             }}
             disabled={loading}
           >

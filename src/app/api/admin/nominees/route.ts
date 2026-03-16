@@ -1,13 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@/lib/auth";
-import { toggleFeatured, toggleApproved } from "@/lib/db/queries";
+import { toggleFeatured, toggleApproved, getAllNomineesForAdmin, getStats } from "@/lib/db/queries";
+
+export async function GET() {
+  const [nominees, stats] = await Promise.all([
+    getAllNomineesForAdmin(),
+    getStats(),
+  ]);
+  return NextResponse.json({ nominees, stats });
+}
 
 export async function PATCH(request: NextRequest) {
-  const session = await auth();
-  if (!session) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-
   const body = await request.json();
   const { id, isFeatured, isApproved } = body;
 

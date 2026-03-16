@@ -1,8 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { lookupXUser, getHighResProfileImage } from "@/lib/x-api";
 import { getNomineeByHandle, upsertNominee } from "@/lib/db/queries";
+import { rateLimit, getClientIp } from "@/lib/rate-limit";
 
 export async function GET(request: NextRequest) {
+  const ip = getClientIp(request.headers);
+  const { success } = rateLimit(`xlookup:${ip}`, 30, 15 * 60 * 1000);
+  if (!success) {
+    return NextResponse.json(
+      { error: "Too many lookups. Please try again later." },
+      { status: 429 }
+    );
+  }
+
   const handle = request.nextUrl.searchParams.get("handle");
 
   if (!handle) {

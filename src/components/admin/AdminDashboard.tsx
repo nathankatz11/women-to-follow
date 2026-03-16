@@ -24,7 +24,7 @@ export function AdminDashboard() {
   const [loading, setLoading] = useState(true);
 
   const fetchData = useCallback(async () => {
-    const res = await fetch("/api/nominees?limit=100&sort=nominations");
+    const res = await fetch("/api/admin/nominees");
     const data = await res.json();
     setNominees(data.nominees);
     setStats(data.stats);
