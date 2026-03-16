@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { ProfilePreview } from "./ProfilePreview";
 import type { XLookupResult } from "@/types";
 
@@ -57,40 +57,50 @@ export function HandleInput({
     [index, onProfileLoaded]
   );
 
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const clean = value.replace(/^@/, "").trim();
-      if (clean.length >= 2) {
-        lookupHandle(clean);
-      } else {
-        setProfile(null);
-        setError(null);
-      }
-    }, 600);
-    return () => clearTimeout(timer);
-  }, [value, lookupHandle]);
+  const triggerLookup = () => {
+    const clean = value.replace(/^@/, "").trim();
+    if (clean.length >= 2) {
+      lookupHandle(clean);
+    }
+  };
 
   return (
     <div className="space-y-3">
       <label className="block text-sm font-medium text-gray-700">
         Woman #{index + 1}
       </label>
-      <div className="relative">
-        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
-          @
-        </span>
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => onChange(index, e.target.value.replace(/^@/, ""))}
-          placeholder="handle"
-          className="w-full pl-9 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-brand-yellow focus:ring-2 focus:ring-brand-yellow/30 outline-none transition-all text-brand-dark bg-white"
-        />
-        {loading && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2">
-            <div className="w-5 h-5 border-2 border-brand-yellow border-t-transparent rounded-full animate-spin" />
-          </div>
-        )}
+      <div className="relative flex gap-2">
+        <div className="relative flex-1">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
+            @
+          </span>
+          <input
+            type="text"
+            value={value}
+            onChange={(e) => onChange(index, e.target.value.replace(/^@/, ""))}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                triggerLookup();
+              }
+            }}
+            placeholder="handle"
+            className="w-full pl-9 pr-4 py-3 rounded-xl border-2 border-gray-200 focus:border-brand-yellow focus:ring-2 focus:ring-brand-yellow/30 outline-none transition-all text-brand-dark bg-white"
+          />
+          {loading && (
+            <div className="absolute right-4 top-1/2 -translate-y-1/2">
+              <div className="w-5 h-5 border-2 border-brand-yellow border-t-transparent rounded-full animate-spin" />
+            </div>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={triggerLookup}
+          disabled={loading || value.replace(/^@/, "").trim().length < 2}
+          className="px-4 py-3 rounded-xl bg-brand-yellow text-brand-dark font-medium text-sm hover:bg-brand-yellow/80 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+        >
+          Look up
+        </button>
       </div>
       {error && <p className="text-sm text-brand-red">{error}</p>}
       {profile && (

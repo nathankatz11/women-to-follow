@@ -171,6 +171,23 @@ export async function getNomineeWithNominators(handle: string) {
   return { ...nominee, nominators };
 }
 
+export async function getNominationsByNominator(handle: string) {
+  const results = await db
+    .select({
+      nomineeHandle: nominees.handle,
+      nomineeName: nominees.name,
+      nomineeProfileImageUrl: nominees.profileImageUrl,
+      createdAt: nominations.createdAt,
+    })
+    .from(nominations)
+    .innerJoin(nominationNominees, eq(nominationNominees.nominationId, nominations.id))
+    .innerJoin(nominees, eq(nominationNominees.nomineeId, nominees.id))
+    .where(eq(nominations.nominatorHandle, handle.toLowerCase()))
+    .orderBy(desc(nominations.createdAt));
+
+  return results;
+}
+
 export async function getStats() {
   const [nomineeCount] = await db
     .select({ count: sql<number>`count(*)` })

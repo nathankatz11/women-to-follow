@@ -37,11 +37,13 @@ export function NominationForm() {
     []
   );
 
+  const filledHandles = handles.filter((h) => h.trim().length >= 2);
+  const filledProfiles = profiles.filter((_, i) => handles[i].trim().length >= 2);
   const allValid =
-    handles.every((h) => h.trim().length >= 2) &&
-    profiles.every((p) => p?.found);
+    filledHandles.length >= 1 &&
+    filledProfiles.every((p) => p?.found);
 
-  const canSubmit = handles.every((h) => h.trim().length >= 2);
+  const canSubmit = filledHandles.length >= 1;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -49,11 +51,14 @@ export function NominationForm() {
     setError(null);
 
     try {
+      const submitted = handles
+        .map((h) => h.replace(/^@/, "").trim())
+        .filter((h) => h.length >= 2);
       const res = await fetch("/api/nominations", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          handles: handles.map((h) => h.replace(/^@/, "").trim()),
+          handles: submitted,
           nominatorHandle: nominatorHandle || undefined,
         }),
       });
@@ -65,7 +70,7 @@ export function NominationForm() {
 
       const data = await res.json();
       const params = new URLSearchParams({
-        handles: handles.join(","),
+        handles: submitted.join(","),
         id: data.nominationId,
       });
       router.push(`/nominated?${params.toString()}`);
@@ -124,10 +129,10 @@ export function NominationForm() {
           {submitting
             ? "Submitting..."
             : allValid
-              ? "Nominate These 3 Women"
+              ? `Nominate ${filledHandles.length === 1 ? "1 Woman" : `These ${filledHandles.length} Women`}`
               : canSubmit
                 ? "Submit Nomination"
-                : "Enter 3 Handles to Continue"}
+                : "Enter at Least 1 Handle to Continue"}
         </Button>
         {!allValid && canSubmit && (
           <p className="text-xs text-gray-500 mt-2">

@@ -1,12 +1,36 @@
+"use client";
+
+import { useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { formatNumber } from "@/lib/utils";
+import { NomineeModal } from "./NomineeModal";
 import type { NomineeProfile } from "@/types";
 
 export function NomineeCard({ nominee }: { nominee: NomineeProfile }) {
+  const [modalNominee, setModalNominee] = useState<NomineeProfile | null>(null);
+
+  async function openNomineeByHandle(handle: string) {
+    try {
+      const res = await fetch(`/api/nominees?search=${encodeURIComponent(handle)}&limit=1`);
+      const data = await res.json();
+      const found = data.nominees?.find(
+        (n: NomineeProfile) => n.handle.toLowerCase() === handle.toLowerCase()
+      );
+      if (found) {
+        setModalNominee({ ...found, nominationCount: Number(found.nominationCount) });
+      }
+    } catch {
+      // Couldn't load — stay on current modal
+    }
+  }
+
   return (
-    <Link href={`/nominee/${nominee.handle}`}>
-      <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-brand-yellow/50 transition-all group cursor-pointer h-full">
+    <>
+      <button
+        type="button"
+        onClick={() => setModalNominee(nominee)}
+        className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md hover:border-brand-yellow/50 transition-all group cursor-pointer h-full text-left w-full"
+      >
         <div className="flex items-start gap-3">
           {nominee.profileImageUrl ? (
             <Image
@@ -50,7 +74,15 @@ export function NomineeCard({ nominee }: { nominee: NomineeProfile }) {
             </span>
           )}
         </div>
-      </div>
-    </Link>
+      </button>
+
+      {modalNominee && (
+        <NomineeModal
+          nominee={modalNominee}
+          onClose={() => setModalNominee(null)}
+          onSelectNominee={openNomineeByHandle}
+        />
+      )}
+    </>
   );
 }

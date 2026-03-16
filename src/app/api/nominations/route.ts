@@ -16,9 +16,9 @@ export async function POST(request: NextRequest) {
   const body = await request.json();
   const { handles, nominatorHandle } = body;
 
-  if (!Array.isArray(handles) || handles.length !== 3) {
+  if (!Array.isArray(handles) || handles.length < 1 || handles.length > 3) {
     return NextResponse.json(
-      { error: "Exactly 3 handles are required" },
+      { error: "Between 1 and 3 handles are required" },
       { status: 400 }
     );
   }
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
   // Validate handles aren't empty
   if (cleanHandles.some((h: string) => !h)) {
     return NextResponse.json(
-      { error: "All 3 handles must be provided" },
+      { error: "All handles must be filled in" },
       { status: 400 }
     );
   }

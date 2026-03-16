@@ -1,16 +1,25 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/utils";
+import { NomineeModal } from "@/components/directory/NomineeModal";
 import type { NomineeProfile } from "@/types";
 
-function CarouselCard({ nominee, isActive }: { nominee: NomineeProfile; isActive: boolean }) {
+function CarouselCard({
+  nominee,
+  isActive,
+  onSelect,
+}: {
+  nominee: NomineeProfile;
+  isActive: boolean;
+  onSelect: () => void;
+}) {
   return (
-    <Link
-      href={`/nominee/${nominee.handle}`}
-      className={`carousel-card group block flex-shrink-0 w-[280px] sm:w-[320px] transition-all duration-500 ${
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`carousel-card group block flex-shrink-0 w-[280px] sm:w-[320px] transition-all duration-500 text-left cursor-pointer ${
         isActive ? "scale-100 opacity-100" : "scale-95 opacity-60"
       }`}
     >
@@ -72,7 +81,7 @@ function CarouselCard({ nominee, isActive }: { nominee: NomineeProfile; isActive
           </div>
         </div>
       </div>
-    </Link>
+    </button>
   );
 }
 
@@ -80,6 +89,7 @@ export function NomineeCarousel({ nominees }: { nominees: NomineeProfile[] }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [selectedNominee, setSelectedNominee] = useState<NomineeProfile | null>(null);
   const cardWidth = 336; // card width + gap
 
   const scrollTo = useCallback(
@@ -152,7 +162,11 @@ export function NomineeCarousel({ nominees }: { nominees: NomineeProfile[] }) {
       >
         {nominees.map((nominee, i) => (
           <div key={nominee.id} className="snap-center">
-            <CarouselCard nominee={nominee} isActive={i === activeIndex} />
+            <CarouselCard
+              nominee={nominee}
+              isActive={i === activeIndex}
+              onSelect={() => setSelectedNominee(nominee)}
+            />
           </div>
         ))}
       </div>
@@ -197,6 +211,27 @@ export function NomineeCarousel({ nominees }: { nominees: NomineeProfile[] }) {
             />
           ))}
         </div>
+      )}
+
+      {selectedNominee && (
+        <NomineeModal
+          nominee={selectedNominee}
+          onClose={() => setSelectedNominee(null)}
+          onSelectNominee={async (handle) => {
+            try {
+              const res = await fetch(`/api/nominees?search=${encodeURIComponent(handle)}&limit=1`);
+              const data = await res.json();
+              const found = data.nominees?.find(
+                (n: NomineeProfile) => n.handle.toLowerCase() === handle.toLowerCase()
+              );
+              if (found) {
+                setSelectedNominee({ ...found, nominationCount: Number(found.nominationCount) });
+              }
+            } catch {
+              // Stay on current modal
+            }
+          }}
+        />
       )}
     </div>
   );
