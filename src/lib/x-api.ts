@@ -1,4 +1,4 @@
-const X_API_BASE = "https://api.x.com/2";
+const X_API_BASE = "https://api.twitterapi.io";
 
 export interface XUserProfile {
   id: string;
@@ -13,22 +13,51 @@ export interface XUserProfile {
   };
 }
 
+interface TwitterApiUserResponse {
+  status: string;
+  data: {
+    id: string;
+    name: string;
+    userName: string;
+    description: string;
+    profilePicture: string;
+    followers: number;
+    following: number;
+    statusesCount: number;
+  };
+}
+
+function mapToXUserProfile(data: TwitterApiUserResponse["data"]): XUserProfile {
+  return {
+    id: data.id,
+    name: data.name,
+    username: data.userName,
+    description: data.description,
+    profile_image_url: data.profilePicture,
+    public_metrics: {
+      followers_count: data.followers,
+      following_count: data.following,
+      tweet_count: data.statusesCount,
+    },
+  };
+}
+
 export async function lookupXUser(
   handle: string
 ): Promise<XUserProfile | null> {
-  const token = process.env.X_BEARER_TOKEN;
-  if (!token) {
-    console.error("X_BEARER_TOKEN not configured");
+  const apiKey = process.env.X_API_KEY;
+  if (!apiKey) {
+    console.error("X_API_KEY not configured");
     return null;
   }
 
   const cleanHandle = handle.replace(/^@/, "").trim();
 
   const res = await fetch(
-    `${X_API_BASE}/users/by/username/${encodeURIComponent(cleanHandle)}?user.fields=description,profile_image_url,public_metrics`,
+    `${X_API_BASE}/twitter/user/info?userName=${encodeURIComponent(cleanHandle)}`,
     {
       headers: {
-        Authorization: `Bearer ${token}`,
+        "X-API-Key": apiKey,
       },
       next: { revalidate: 86400 },
     }
@@ -44,50 +73,28 @@ export async function lookupXUser(
     return null;
   }
 
-  const json = await res.json();
-  if (json.errors || !json.data) {
+  const json: TwitterApiUserResponse = await res.json();
+  if (json.status !== "success" || !json.data) {
     return null;
   }
 
-  return json.data as XUserProfile;
+  return mapToXUserProfile(json.data);
 }
 
 export async function lookupXUsers(
   handles: string[]
 ): Promise<Map<string, XUserProfile>> {
-  const token = process.env.X_BEARER_TOKEN;
   const results = new Map<string, XUserProfile>();
 
-  if (!token) {
-    console.error("X_BEARER_TOKEN not configured");
-    return results;
-  }
-
-  const cleanHandles = handles.map((h) => h.replace(/^@/, "").trim());
-  const usernames = cleanHandles.join(",");
-
-  const res = await fetch(
-    `${X_API_BASE}/users/by?usernames=${encodeURIComponent(usernames)}&user.fields=description,profile_image_url,public_metrics`,
-    {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-      next: { revalidate: 86400 },
+  // TwitterAPI.io doesn't have a batch endpoint, so we fetch in parallel
+  const lookups = handles.map(async (handle) => {
+    const profile = await lookupXUser(handle);
+    if (profile) {
+      results.set(profile.username.toLowerCase(), profile);
     }
-  );
+  });
 
-  if (!res.ok) {
-    console.error(`X API batch error: ${res.status}`);
-    return results;
-  }
-
-  const json = await res.json();
-  if (json.data) {
-    for (const user of json.data) {
-      results.set(user.username.toLowerCase(), user);
-    }
-  }
-
+  await Promise.all(lookups);
   return results;
 }
 
