@@ -1,31 +1,30 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { getNomineesWithCounts, getStats } from "@/lib/db/queries";
-import { NomineeCard } from "@/components/directory/NomineeCard";
+import { NomineeCarousel } from "@/components/home/NomineeCarousel";
 import type { NomineeProfile } from "@/types";
 
 export const revalidate = 300;
 
 export default async function Home() {
   let stats = { totalNominees: 0, totalNominations: 0 };
-  let featured: NomineeProfile[] = [];
+  let nominees: NomineeProfile[] = [];
 
   try {
-    [stats, featured] = await Promise.all([
+    [stats, nominees] = await Promise.all([
       getStats(),
-      getNomineesWithCounts({ sort: "featured", featuredOnly: true, limit: 6 }).then(
-        (rows) =>
-          rows.map((n) => ({
-            id: n.id,
-            handle: n.handle,
-            name: n.name,
-            bio: n.bio,
-            profileImageUrl: n.profileImageUrl,
-            followerCount: n.followerCount,
-            isFeatured: n.isFeatured,
-            nominationCount: Number(n.nominationCount),
-            createdAt: n.createdAt,
-          }))
+      getNomineesWithCounts({ sort: "nominations", limit: 20 }).then((rows) =>
+        rows.map((n) => ({
+          id: n.id,
+          handle: n.handle,
+          name: n.name,
+          bio: n.bio,
+          profileImageUrl: n.profileImageUrl,
+          followerCount: n.followerCount,
+          isFeatured: n.isFeatured,
+          nominationCount: Number(n.nominationCount),
+          createdAt: n.createdAt,
+        }))
       ),
     ]);
   } catch {
@@ -34,48 +33,49 @@ export default async function Home() {
 
   return (
     <main className="min-h-screen">
-      {/* Hero */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-brand-cream via-white to-brand-yellow-light">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_50%,rgba(230,57,70,0.08),transparent_60%)]" />
+      {/* Nav */}
+      <nav className="relative flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
+        <Link href="/" className="text-xl font-bold text-brand-red tracking-tight">
+          #WomenToFollow
+        </Link>
+        <div className="flex items-center gap-4">
+          <Link
+            href="/directory"
+            className="text-sm font-medium text-gray-600 hover:text-brand-red transition-colors"
+          >
+            Directory
+          </Link>
+          <Link href="/nominate">
+            <Button size="sm">Nominate</Button>
+          </Link>
+        </div>
+      </nav>
 
-        <nav className="relative flex items-center justify-between px-6 py-4 max-w-6xl mx-auto">
-          <span className="text-xl font-bold text-brand-red">
-            #WomenToFollow
-          </span>
-          <div className="flex items-center gap-4">
-            <Link
-              href="/directory"
-              className="text-sm font-medium text-gray-600 hover:text-brand-red transition-colors"
-            >
-              Directory
-            </Link>
-            <Link href="/nominate">
-              <Button size="sm">Nominate</Button>
-            </Link>
-          </div>
-        </nav>
+      {/* Hero — compact & punchy */}
+      <section className="relative overflow-hidden bg-gradient-to-b from-brand-cream via-white to-transparent">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_30%,rgba(230,57,70,0.06),transparent_50%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_80%_70%,rgba(255,215,0,0.08),transparent_50%)]" />
 
-        <div className="relative max-w-4xl mx-auto px-6 py-20 md:py-32 text-center">
-          <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight text-brand-dark leading-tight">
-            Amplify{" "}
-            <span className="text-brand-red">Women&apos;s Voices</span>
-          </h1>
-          <p className="mt-6 text-lg md:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
-            Join the movement that reached{" "}
-            <span className="font-semibold text-brand-dark">
-              12 million people
-            </span>
-            . Nominate 3 women whose voices deserve to be heard. Together, we
-            close the visibility gap.
+        <div className="relative max-w-4xl mx-auto px-6 pt-12 pb-6 md:pt-20 md:pb-10 text-center">
+          <p className="text-sm font-semibold tracking-widest uppercase text-brand-red mb-4">
+            The movement that reached 12M+ people
           </p>
-          <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-center">
+          <h1 className="text-4xl sm:text-5xl md:text-7xl font-extrabold tracking-tight text-brand-dark leading-[1.1]">
+            Discover women{" "}
+            <span className="text-brand-red">worth following</span>
+          </h1>
+          <p className="mt-5 text-base sm:text-lg text-gray-500 max-w-xl mx-auto leading-relaxed">
+            Nominate 3 women whose voices deserve to be heard.
+            Together, we close the visibility gap.
+          </p>
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
             <Link href="/nominate">
-              <Button size="lg" className="text-lg px-10">
+              <Button size="lg" className="text-base px-8">
                 Nominate 3 Women
               </Button>
             </Link>
             <Link href="/directory">
-              <Button variant="outline" size="lg" className="text-lg px-10">
+              <Button variant="outline" size="lg" className="text-base px-8">
                 Browse Directory
               </Button>
             </Link>
@@ -83,145 +83,103 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* How it works */}
-      <section className="py-20 bg-white">
-        <div className="max-w-5xl mx-auto px-6">
-          <h2 className="text-3xl md:text-4xl font-bold text-center text-brand-dark mb-16">
-            How It Works
+      {/* Nominee Carousel — the main attraction */}
+      {nominees.length > 0 && (
+        <section className="py-12 md:py-16 bg-gradient-to-b from-white via-brand-cream/30 to-brand-cream">
+          <div className="max-w-6xl mx-auto px-6 mb-8">
+            <div className="flex items-end justify-between">
+              <div>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-brand-dark">
+                  Meet the nominees
+                </h2>
+                <p className="text-gray-500 mt-1 text-sm sm:text-base">
+                  Swipe through women making an impact
+                </p>
+              </div>
+              <Link
+                href="/directory"
+                className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-brand-red hover:underline"
+              >
+                View all
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+          <NomineeCarousel nominees={nominees} />
+          <div className="sm:hidden text-center mt-6">
+            <Link
+              href="/directory"
+              className="inline-flex items-center gap-1 text-sm font-medium text-brand-red hover:underline"
+            >
+              View all nominees
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </Link>
+          </div>
+        </section>
+      )}
+
+      {/* Inline stats */}
+      {(stats.totalNominees > 0 || stats.totalNominations > 0) && (
+        <section className="py-14 bg-brand-dark">
+          <div className="max-w-4xl mx-auto px-6 flex flex-wrap justify-center gap-10 sm:gap-16 text-center">
+            <div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-brand-yellow">12M+</div>
+              <div className="text-xs text-gray-400 mt-1 uppercase tracking-wider">People Reached</div>
+            </div>
+            <div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-brand-yellow">
+                {stats.totalNominees.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-400 mt-1 uppercase tracking-wider">Women Nominated</div>
+            </div>
+            <div>
+              <div className="text-3xl sm:text-4xl font-extrabold text-brand-yellow">
+                {stats.totalNominations.toLocaleString()}
+              </div>
+              <div className="text-xs text-gray-400 mt-1 uppercase tracking-wider">Nominations</div>
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* How it works — streamlined */}
+      <section className="py-16 bg-white">
+        <div className="max-w-4xl mx-auto px-6">
+          <h2 className="text-2xl sm:text-3xl font-bold text-center text-brand-dark mb-12">
+            Three steps to amplify
           </h2>
-          <div className="grid md:grid-cols-3 gap-8">
+          <div className="grid sm:grid-cols-3 gap-6">
             {[
-              {
-                step: "1",
-                title: "Enter 3 Handles",
-                desc: "Type in the X handles of 3 women you think everyone should follow.",
-                icon: (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                  />
-                ),
-              },
-              {
-                step: "2",
-                title: "We Fetch Profiles",
-                desc: "We automatically pull in their bios, photos, and follower counts from X.",
-                icon: (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                ),
-              },
-              {
-                step: "3",
-                title: "Share & Amplify",
-                desc: "Share your nominations on X and challenge others to do the same.",
-                icon: (
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z"
-                  />
-                ),
-              },
-            ].map((item) => (
-              <div key={item.step} className="text-center">
-                <div className="w-16 h-16 bg-brand-yellow/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <svg
-                    className="w-8 h-8 text-brand-red"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    {item.icon}
-                  </svg>
+              { num: "1", title: "Enter 3 handles", desc: "Type the X handles of 3 women you think everyone should follow." },
+              { num: "2", title: "We fetch profiles", desc: "We pull in their bios, photos, and follower counts automatically." },
+              { num: "3", title: "Share & amplify", desc: "Share your nominations on X and challenge others to join in." },
+            ].map((step) => (
+              <div key={step.num} className="flex sm:flex-col items-start sm:items-center sm:text-center gap-4 sm:gap-0">
+                <div className="flex-shrink-0 w-10 h-10 rounded-full bg-brand-red text-white flex items-center justify-center font-bold text-sm">
+                  {step.num}
                 </div>
-                <div className="text-sm font-bold text-brand-red mb-2">
-                  Step {item.step}
+                <div className="sm:mt-4">
+                  <h3 className="font-bold text-brand-dark">{step.title}</h3>
+                  <p className="text-sm text-gray-500 mt-1">{step.desc}</p>
                 </div>
-                <h3 className="text-xl font-bold text-brand-dark mb-2">
-                  {item.title}
-                </h3>
-                <p className="text-gray-600">{item.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Stats */}
-      {(stats.totalNominees > 0 || stats.totalNominations > 0) && (
-        <section className="py-16 bg-brand-dark text-white">
-          <div className="max-w-4xl mx-auto px-6">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-8 text-center">
-              <div>
-                <div className="text-4xl md:text-5xl font-extrabold text-brand-yellow">
-                  12M+
-                </div>
-                <div className="text-sm text-gray-300 mt-1">People Reached</div>
-              </div>
-              <div>
-                <div className="text-4xl md:text-5xl font-extrabold text-brand-yellow">
-                  {stats.totalNominees.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-300 mt-1">
-                  Women Nominated
-                </div>
-              </div>
-              <div className="col-span-2 md:col-span-1">
-                <div className="text-4xl md:text-5xl font-extrabold text-brand-yellow">
-                  {stats.totalNominations.toLocaleString()}
-                </div>
-                <div className="text-sm text-gray-300 mt-1">
-                  Total Nominations
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* Featured Women */}
-      {featured.length > 0 && (
-        <section className="py-20 bg-brand-cream">
-          <div className="max-w-6xl mx-auto px-6">
-            <h2 className="text-3xl md:text-4xl font-bold text-center text-brand-dark mb-4">
-              Featured Women to Follow
-            </h2>
-            <p className="text-center text-gray-600 mb-12 max-w-2xl mx-auto">
-              Hand-picked by Rose Horowitz, these women are leading the way in
-              their fields.
-            </p>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {featured.map((nominee) => (
-                <NomineeCard key={nominee.id} nominee={nominee} />
-              ))}
-            </div>
-            <div className="text-center mt-8">
-              <Link href="/directory">
-                <Button variant="outline">View Full Directory</Button>
-              </Link>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* About / Connect */}
-      <section className="py-20 bg-white">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <h2 className="text-3xl md:text-4xl font-bold text-brand-dark mb-6">
+      {/* About */}
+      <section className="py-16 bg-brand-cream">
+        <div className="max-w-2xl mx-auto px-6 text-center">
+          <h2 className="text-2xl sm:text-3xl font-bold text-brand-dark mb-4">
             About the Movement
           </h2>
           <p className="text-gray-600 leading-relaxed mb-6">
-            <span className="font-semibold text-brand-dark">
-              #WomenToFollow
-            </span>{" "}
+            <span className="font-semibold text-brand-dark">#WomenToFollow</span>{" "}
             was founded by Pulitzer-nominated journalist{" "}
             <a
               href="https://x.com/RoseHorowitz31"
@@ -231,12 +189,10 @@ export default async function Home() {
             >
               Rose Horowitz
             </a>{" "}
-            to address the documented disparity where women receive
-            significantly less amplification on social media. The movement has
-            produced 34+ livestream episodes and generated over 450,000 social
-            media impressions.
+            to address the documented disparity where women receive significantly
+            less amplification on social media.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
+          <div className="flex flex-wrap justify-center gap-3">
             <a
               href="https://x.com/RoseHorowitz31"
               target="_blank"
