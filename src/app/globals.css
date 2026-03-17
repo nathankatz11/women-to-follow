@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+html {
+  scroll-behavior: smooth;
+}
+
 @theme {
   --color-brand-yellow: #FFD700;
   --color-brand-yellow-light: #FFF3B0;

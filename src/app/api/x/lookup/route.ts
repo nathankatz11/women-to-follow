@@ -62,16 +62,20 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Upsert to DB
   const profileImageUrl = getHighResProfileImage(profile.profile_image_url);
-  await upsertNominee({
-    handle: cleanHandle,
-    name: profile.name,
-    bio: profile.description,
-    profileImageUrl,
-    followerCount: profile.public_metrics.followers_count,
-    xUserId: profile.id,
-  });
+
+  // Only save to DB if this is a nominee lookup (not a preview-only request)
+  const preview = request.nextUrl.searchParams.get("preview") === "true";
+  if (!preview) {
+    await upsertNominee({
+      handle: cleanHandle,
+      name: profile.name,
+      bio: profile.description,
+      profileImageUrl,
+      followerCount: profile.public_metrics.followers_count,
+      xUserId: profile.id,
+    });
+  }
 
   return NextResponse.json({
     handle: cleanHandle,

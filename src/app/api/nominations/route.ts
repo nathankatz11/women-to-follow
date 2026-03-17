@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { handles, nominatorHandle } = body;
+  const { handles, reasons, nominatorHandle } = body;
 
   if (!Array.isArray(handles) || handles.length < 1 || handles.length > 3) {
     return NextResponse.json(
@@ -59,10 +59,20 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Build handle-to-reason map
+  const cleanReasons: Record<string, string> = {};
+  if (Array.isArray(reasons)) {
+    cleanHandles.forEach((h: string, i: number) => {
+      const r = reasons[i]?.trim();
+      if (r) cleanReasons[h] = r;
+    });
+  }
+
   const nomination = await createNomination(
     cleanHandles,
     nominatorHandle?.replace(/^@/, "").trim() || undefined,
-    ip
+    ip,
+    cleanReasons
   );
 
   return NextResponse.json({

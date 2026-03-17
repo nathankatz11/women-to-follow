@@ -48,7 +48,8 @@ export async function upsertNominee(data: {
 export async function createNomination(
   handles: string[],
   nominatorHandle?: string,
-  nominatorIp?: string
+  nominatorIp?: string,
+  reasons?: Record<string, string>
 ) {
   const [nomination] = await db
     .insert(nominations)
@@ -63,6 +64,7 @@ export async function createNomination(
         .values({
           nominationId: nomination.id,
           nomineeId: nominee.id,
+          reason: reasons?.[handle] || null,
         })
         .onConflictDoNothing();
     }
@@ -162,7 +164,11 @@ export async function getNomineeWithNominators(handle: string) {
   if (!nominee) return null;
 
   const nominators = await db
-    .select({ handle: nominations.nominatorHandle, createdAt: nominations.createdAt })
+    .select({
+      handle: nominations.nominatorHandle,
+      createdAt: nominations.createdAt,
+      reason: nominationNominees.reason,
+    })
     .from(nominationNominees)
     .innerJoin(nominations, eq(nominationNominees.nominationId, nominations.id))
     .where(eq(nominationNominees.nomineeId, nominee.id))

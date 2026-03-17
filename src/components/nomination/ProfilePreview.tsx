@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
 import { formatNumber } from "@/lib/utils";
 
@@ -18,26 +19,42 @@ export function ProfilePreview({
   profileImageUrl,
   followerCount,
 }: ProfilePreviewProps) {
+  const [bioExpanded, setBioExpanded] = useState(false);
+  const isLong = bio && bio.length > 120;
+
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-md border border-gray-100 animate-in fade-in slide-in-from-bottom-2 duration-300">
+    <div className="p-4">
       <div className="flex items-start gap-3">
         <Image
           src={profileImageUrl}
           alt={name}
-          width={56}
-          height={56}
+          width={48}
+          height={48}
           className="rounded-full ring-2 ring-brand-yellow"
         />
         <div className="flex-1 min-w-0">
-          <h3 className="font-bold text-brand-dark truncate">{name}</h3>
-          <p className="text-sm text-gray-500">@{handle}</p>
+          <h3 className="font-bold text-brand-dark truncate text-sm">{name}</h3>
+          <p className="text-xs text-gray-500">@{handle}</p>
           <p className="text-xs text-gray-400 mt-0.5">
             {formatNumber(followerCount)} followers
           </p>
         </div>
       </div>
       {bio && (
-        <p className="mt-3 text-sm text-gray-600 line-clamp-2">{bio}</p>
+        <div className="mt-2">
+          <p className={`text-xs text-gray-600 leading-relaxed ${!bioExpanded && isLong ? "line-clamp-2" : ""}`}>
+            {bio}
+          </p>
+          {isLong && (
+            <button
+              type="button"
+              onClick={() => setBioExpanded(!bioExpanded)}
+              className="text-xs text-brand-red hover:underline mt-0.5 cursor-pointer"
+            >
+              {bioExpanded ? "Less" : "More"}
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

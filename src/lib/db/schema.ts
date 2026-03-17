@@ -38,6 +38,7 @@ export const nominationNominees = pgTable(
     nomineeId: uuid("nominee_id")
       .notNull()
       .references(() => nominees.id),
+    reason: text("reason"),
   },
   (t) => ({
     pk: primaryKey({ columns: [t.nominationId, t.nomineeId] }),

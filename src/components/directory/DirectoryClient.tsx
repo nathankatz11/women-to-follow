@@ -15,7 +15,7 @@ export function DirectoryClient({
   const [nominees, setNominees] = useState(initialNominees);
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<"nominations" | "recent" | "featured">(
-    "nominations"
+    "recent"
   );
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);

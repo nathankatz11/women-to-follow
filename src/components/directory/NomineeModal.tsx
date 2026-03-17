@@ -6,18 +6,37 @@ import Link from "next/link";
 import { formatNumber } from "@/lib/utils";
 import { composeTweetUrl } from "@/lib/x-api";
 import { Button } from "@/components/ui/button";
+import { ProfileHoverCard } from "./ProfileHoverCard";
 import type { NomineeProfile } from "@/types";
 
 interface Nominator {
   handle: string | null;
   createdAt: string;
+  reason: string | null;
 }
 
-interface NominatorNomination {
-  nomineeHandle: string;
-  nomineeName: string | null;
-  nomineeProfileImageUrl: string | null;
-  createdAt: string;
+function ExpandableBio({ bio }: { bio: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const isLong = bio.length > 160;
+
+  return (
+    <div className="mt-4 max-w-md">
+      <p
+        className={`text-gray-600 leading-relaxed ${!expanded && isLong ? "line-clamp-3" : ""}`}
+      >
+        {bio}
+      </p>
+      {isLong && (
+        <button
+          type="button"
+          onClick={() => setExpanded(!expanded)}
+          className="text-sm text-brand-red hover:underline mt-1 cursor-pointer"
+        >
+          {expanded ? "Show less" : "Read more"}
+        </button>
+      )}
+    </div>
+  );
 }
 
 interface NomineeModalProps {
@@ -26,101 +45,50 @@ interface NomineeModalProps {
   onSelectNominee?: (handle: string) => void;
 }
 
-function NominatorChip({
-  nominator,
-  onSelectNominee,
-}: {
-  nominator: Nominator;
-  onSelectNominee?: (handle: string) => void;
-}) {
-  const [expanded, setExpanded] = useState(false);
-  const [nominations, setNominations] = useState<NominatorNomination[]>([]);
-  const [loading, setLoading] = useState(false);
-
-  async function loadNominations() {
-    if (!nominator.handle || expanded) {
-      setExpanded(!expanded);
-      return;
-    }
-    setLoading(true);
-    try {
-      const res = await fetch(
-        `/api/nominators/${encodeURIComponent(nominator.handle)}/nominations`
-      );
-      const data = await res.json();
-      setNominations(data.nominations ?? []);
-    } catch {
-      setNominations([]);
-    } finally {
-      setLoading(false);
-      setExpanded(true);
-    }
-  }
-
-  if (!nominator.handle) {
+function NominatorChip({ nominator }: { nominator: Nominator }) {
+  if (!nominator.handle && !nominator.reason) {
     return (
-      <span className="bg-brand-cream px-3 py-1.5 rounded-full text-sm text-gray-400">
+      <div className="inline-block bg-gray-100 px-3 py-1.5 rounded-full text-sm text-gray-400">
         Anonymous
-      </span>
+      </div>
     );
   }
 
-  return (
-    <div>
-      <button
-        type="button"
-        onClick={loadNominations}
-        className="bg-brand-cream hover:bg-brand-yellow/20 px-3 py-1.5 rounded-full text-sm text-brand-dark transition-colors cursor-pointer"
-      >
-        @{nominator.handle}
-        <svg
-          className={`inline-block w-3 h-3 ml-1 transition-transform ${expanded ? "rotate-180" : ""}`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {expanded && (
-        <div className="mt-2 ml-2 pl-3 border-l-2 border-brand-yellow/30 space-y-1.5">
-          {loading ? (
-            <p className="text-xs text-gray-400">Loading...</p>
-          ) : nominations.length === 0 ? (
-            <p className="text-xs text-gray-400">No other nominations found</p>
-          ) : (
-            <>
-              <p className="text-xs text-gray-500 font-medium mb-1">
-                Also nominated:
-              </p>
-              {nominations.map((n) => (
-                <button
-                  key={n.nomineeHandle}
-                  type="button"
-                  onClick={() => onSelectNominee?.(n.nomineeHandle)}
-                  className="flex items-center gap-2 text-sm text-brand-dark hover:text-brand-red transition-colors cursor-pointer w-full text-left"
-                >
-                  {n.nomineeProfileImageUrl ? (
-                    <Image
-                      src={n.nomineeProfileImageUrl}
-                      alt={n.nomineeName ?? n.nomineeHandle}
-                      width={20}
-                      height={20}
-                      className="rounded-full"
-                    />
-                  ) : (
-                    <span className="w-5 h-5 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold">
-                      {n.nomineeHandle[0]?.toUpperCase()}
-                    </span>
-                  )}
-                  <span>{n.nomineeName ?? `@${n.nomineeHandle}`}</span>
-                </button>
-              ))}
-            </>
-          )}
+  if (!nominator.reason) {
+    // No reason — simple chip
+    if (!nominator.handle) {
+      return (
+        <div className="inline-block bg-gray-100 px-3 py-1.5 rounded-full text-sm text-gray-400">
+          Anonymous
         </div>
-      )}
+      );
+    }
+    return (
+      <ProfileHoverCard handle={nominator.handle}>
+        <span className="inline-block bg-brand-cream hover:bg-brand-yellow/20 px-3 py-1.5 rounded-full text-sm text-brand-dark transition-colors cursor-default">
+          @{nominator.handle}
+        </span>
+      </ProfileHoverCard>
+    );
+  }
+
+  // Has a reason — show as a quote card
+  return (
+    <div className="bg-brand-cream/50 rounded-xl p-4 border border-brand-yellow/20">
+      <p className="text-sm text-gray-700 leading-relaxed italic">
+        &ldquo;{nominator.reason}&rdquo;
+      </p>
+      <div className="mt-2">
+        {nominator.handle ? (
+          <ProfileHoverCard handle={nominator.handle}>
+            <span className="text-xs font-medium text-brand-dark cursor-default hover:text-brand-red transition-colors">
+              — @{nominator.handle}
+            </span>
+          </ProfileHoverCard>
+        ) : (
+          <span className="text-xs text-gray-400">— Anonymous</span>
+        )}
+      </div>
     </div>
   );
 }
@@ -170,19 +138,21 @@ export function NomineeModal({ nominee, onClose, onSelectNominee }: NomineeModal
         className="relative bg-white rounded-3xl max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-in fade-in zoom-in-95 duration-200"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Close button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors cursor-pointer z-10"
-          aria-label="Close"
-        >
-          <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
-
         {/* Top accent */}
         <div className="h-1.5 bg-gradient-to-r from-brand-red via-brand-yellow to-brand-red rounded-t-3xl" />
+
+        {/* Sticky close button */}
+        <div className="sticky top-0 z-10 pointer-events-none h-0">
+          <button
+            onClick={onClose}
+            className="pointer-events-auto absolute top-3 right-4 w-8 h-8 rounded-full bg-white shadow-md hover:bg-gray-100 flex items-center justify-center transition-colors cursor-pointer"
+            aria-label="Close"
+          >
+            <svg className="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
 
         <div className="p-8">
           <div className="flex flex-col items-center text-center">
@@ -219,11 +189,7 @@ export function NomineeModal({ nominee, onClose, onSelectNominee }: NomineeModal
               </p>
             )}
 
-            {nominee.bio && (
-              <p className="text-gray-600 mt-4 leading-relaxed max-w-md">
-                {nominee.bio}
-              </p>
-            )}
+            {nominee.bio && <ExpandableBio bio={nominee.bio} />}
 
             {nominee.isFeatured && (
               <span className="mt-4 bg-brand-yellow/20 text-brand-dark text-sm font-medium px-4 py-1.5 rounded-full">
@@ -234,22 +200,30 @@ export function NomineeModal({ nominee, onClose, onSelectNominee }: NomineeModal
 
           {/* Nominated by section */}
           <div className="mt-6 pt-6 border-t border-gray-100">
-            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-3">
+            <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-2">
               Nominated by {nominators.length > 0 && `(${nominators.length})`}
             </h3>
             {loadingNominators ? (
-              <p className="text-sm text-gray-400">Loading...</p>
+              <div className="flex items-center gap-2 py-3">
+                <div className="w-5 h-5 border-2 border-brand-yellow border-t-transparent rounded-full animate-spin" />
+                <span className="text-sm text-gray-400">Loading...</span>
+              </div>
             ) : nominators.length === 0 ? (
-              <p className="text-sm text-gray-400">No nominators found</p>
+              <p className="text-sm text-gray-400 py-2">No nominators found</p>
             ) : (
-              <div className="space-y-2">
-                {nominators.map((n, i) => (
-                  <NominatorChip
-                    key={i}
-                    nominator={n}
-                    onSelectNominee={onSelectNominee}
-                  />
+              <div className="space-y-3">
+                {/* Quote cards for nominators with reasons */}
+                {nominators.filter((n) => n.reason).map((n, i) => (
+                  <NominatorChip key={`reason-${i}`} nominator={n} />
                 ))}
+                {/* Inline chips for nominators without reasons */}
+                {nominators.some((n) => !n.reason) && (
+                  <div className="flex flex-wrap gap-2">
+                    {nominators.filter((n) => !n.reason).map((n, i) => (
+                      <NominatorChip key={`chip-${i}`} nominator={n} />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>
