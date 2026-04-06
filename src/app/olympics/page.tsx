@@ -32,11 +32,11 @@ interface TicketPlan {
 const INITIAL_TICKETS: TicketPlan[] = [
   {
     id: "1",
-    event: "Women's Gymnastics All-Around Final",
-    date: "2028-07-25",
+    event: "Women's Gymnastics",
+    date: "2028-07-20",
     time: "18:00",
-    venue: "Crypto.com Arena",
-    quantity: 2,
+    venue: "",
+    quantity: 6,
     priority: "must-have",
     notes: "",
   },
